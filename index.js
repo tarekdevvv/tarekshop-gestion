@@ -75,23 +75,22 @@ client.once("ready", async () => {
 
 // Vérif si arrt de boost = enlève le vip et message de remerciement
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
-    const BOOST_CHANNEL_ID = '1344588705293271121'; // Salon où envoyer le message
-    const vipRolesBoost = ['1344588704844349479', '1344588704844349478']; // Rôles VIP liés au boost
+    const BOOST_CHANNEL_ID = '1344588705293271121'; // salon où envoyer le message
+    const ROLE_ONE_BOOST = '1344588704844349479'; // rôle 1 boost
+    const ROLE_TWO_BOOST = '1344588704844349478'; // rôle 2 boosts
 
     try {
         if (oldMember.premiumSince && !newMember.premiumSince) {
             console.log(`${newMember.user.tag} a arrêté de booster.`);
 
-            for (const roleId of vipRolesBoost) {
-                if (newMember.roles.cache.has(roleId)) {
-                    try {
-                        await newMember.roles.remove(roleId, "A arrêté de booster");
-                        console.log(`Rôle VIP retiré à ${newMember.user.tag}`);
-                    } catch (err) {
-                        console.error(`Impossible de retirer le rôle VIP :`, err);
-                    }
-                }
+            if (newMember.roles.cache.has(ROLE_ONE_BOOST)) {
+                await newMember.roles.remove(ROLE_ONE_BOOST, "A arrêté de booster");
             }
+            if (newMember.roles.cache.has(ROLE_TWO_BOOST)) {
+                await newMember.roles.remove(ROLE_TWO_BOOST, "A arrêté de booster");
+            }
+
+            console.log(`Rôles boost retirés à ${newMember.user.tag}`);
         }
 
         if (!oldMember.premiumSince && newMember.premiumSince) {
@@ -99,6 +98,16 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
             const channel = newMember.guild.channels.cache.get(BOOST_CHANNEL_ID);
             if (!channel) return;
+
+            if (!newMember.roles.cache.has(ROLE_ONE_BOOST) && !newMember.roles.cache.has(ROLE_TWO_BOOST)) {
+                await newMember.roles.add(ROLE_ONE_BOOST).catch(console.error);
+                console.log(`${newMember.user.tag} a maintenant 1 boost.`);
+            }
+            else if (newMember.roles.cache.has(ROLE_ONE_BOOST)) {
+                await newMember.roles.remove(ROLE_ONE_BOOST).catch(console.error);
+                await newMember.roles.add(ROLE_TWO_BOOST).catch(console.error);
+                console.log(`${newMember.user.tag} a maintenant 2 boosts.`);
+            }
 
             const embed = new EmbedBuilder()
                 .setColor(0xFFD700)
@@ -117,6 +126,50 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
         console.error(err);
     }
 });
+
+// client.on("guildMemberUpdate", async (oldMember, newMember) => {
+//     const BOOST_CHANNEL_ID = '1344588705293271121'; // Salon où envoyer le message
+//     const vipRolesBoost = ['1344588704844349479', '1344588704844349478']; // Rôles VIP liés au boost
+
+//     try {
+//         if (oldMember.premiumSince && !newMember.premiumSince) {
+//             console.log(`${newMember.user.tag} a arrêté de booster.`);
+
+//             for (const roleId of vipRolesBoost) {
+//                 if (newMember.roles.cache.has(roleId)) {
+//                     try {
+//                         await newMember.roles.remove(roleId, "A arrêté de booster");
+//                         console.log(`Rôle VIP retiré à ${newMember.user.tag}`);
+//                     } catch (err) {
+//                         console.error(`Impossible de retirer le rôle VIP :`, err);
+//                     }
+//                 }
+//             }
+//         }
+
+//         if (!oldMember.premiumSince && newMember.premiumSince) {
+//             console.log(`${newMember.user.tag} a boosté le serveur !`);
+
+//             const channel = newMember.guild.channels.cache.get(BOOST_CHANNEL_ID);
+//             if (!channel) return;
+
+//             const embed = new EmbedBuilder()
+//                 .setColor(0xFFD700)
+//                 .setTitle('🎉 Nouveau boost / New Boost!')
+//                 .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+//                 .addFields(
+//                     { name: 'FR 🇫🇷', value: `Merci à **${newMember.user.tag}** d'avoir boosté le serveur !` },
+//                     { name: 'EN 🇬🇧', value: `Thank you **${newMember.user.tag}** for boosting the server!` }
+//                 )
+//                 .setFooter({ text: 'Merci pour ton soutien / Thanks for your support' })
+//                 .setTimestamp();
+
+//             await channel.send({ embeds: [embed] });
+//         }
+//     } catch (err) {
+//         console.error(err);
+//     }
+// });
 
 // client.on("guildMemberUpdate", async (oldMember, newMember) => {
 //   if (oldMember.premiumSince && !newMember.premiumSince) {
@@ -1234,3 +1287,4 @@ client.on('guildMemberRemove', async member => {
 });
 
 client.login(process.env.TOKEN);
+
