@@ -9,6 +9,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, ActivityType } = require('discord.js');
 const fs = require('fs');
 const ms = require('ms');
+const express = require("express");
 
 const client = new Client({
   intents: [
@@ -16,9 +17,22 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessageReactions
   ]
 });
+
+
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("✅ Bot is running!");
+});
+
+app.listen(3000, () => {
+  console.log("🌐 Web server running on port 3000");
+});
+
 
 const GUILD_ID = "1344588704769114135";
 
@@ -59,28 +73,67 @@ client.once("ready", async () => {
   updateVipCount();
 });
 
-const vipRolesBoost = [
-  "1344588704844349479",
-  "1344588704844349478"
-];
-
-// Vérif si arrt de boost = enlève le vip
+// Vérif si arrt de boost = enlève le vip et message de remerciement
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
-  if (oldMember.premiumSince && !newMember.premiumSince) {
-    console.log(`${newMember.user.tag} a arrêté de booster.`);
+    const BOOST_CHANNEL_ID = '1344588705293271121'; // Salon où envoyer le message
+    const vipRolesBoost = ['1344588704844349479', '1344588704844349478']; // Rôles VIP liés au boost
 
-    for (const roleId of vipRolesBoost) {
-      if (newMember.roles.cache.has(roleId)) {
-        try {
-          await newMember.roles.remove(roleId, "A arrêté de booster");
-          console.log(`Rôle VIP retiré à ${newMember.user.tag}`);
-        } catch (err) {
-          console.error(`Impossible de retirer le rôle VIP :`, err);
+    try {
+        if (oldMember.premiumSince && !newMember.premiumSince) {
+            console.log(`${newMember.user.tag} a arrêté de booster.`);
+
+            for (const roleId of vipRolesBoost) {
+                if (newMember.roles.cache.has(roleId)) {
+                    try {
+                        await newMember.roles.remove(roleId, "A arrêté de booster");
+                        console.log(`Rôle VIP retiré à ${newMember.user.tag}`);
+                    } catch (err) {
+                        console.error(`Impossible de retirer le rôle VIP :`, err);
+                    }
+                }
+            }
         }
-      }
+
+        if (!oldMember.premiumSince && newMember.premiumSince) {
+            console.log(`${newMember.user.tag} a boosté le serveur !`);
+
+            const channel = newMember.guild.channels.cache.get(BOOST_CHANNEL_ID);
+            if (!channel) return;
+
+            const embed = new EmbedBuilder()
+                .setColor(0xFFD700)
+                .setTitle('🎉 Nouveau boost / New Boost!')
+                .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+                .addFields(
+                    { name: 'FR 🇫🇷', value: `Merci à **${newMember.user.tag}** d'avoir boosté le serveur !` },
+                    { name: 'EN 🇬🇧', value: `Thank you **${newMember.user.tag}** for boosting the server!` }
+                )
+                .setFooter({ text: 'Merci pour ton soutien / Thanks for your support' })
+                .setTimestamp();
+
+            await channel.send({ embeds: [embed] });
+        }
+    } catch (err) {
+        console.error(err);
     }
-  }
 });
+
+// client.on("guildMemberUpdate", async (oldMember, newMember) => {
+//   if (oldMember.premiumSince && !newMember.premiumSince) {
+//     console.log(`${newMember.user.tag} a arrêté de booster.`);
+
+//     for (const roleId of vipRolesBoost) {
+//       if (newMember.roles.cache.has(roleId)) {
+//         try {
+//           await newMember.roles.remove(roleId, "A arrêté de booster");
+//           console.log(`Rôle VIP retiré à ${newMember.user.tag}`);
+//         } catch (err) {
+//           console.error(`Impossible de retirer le rôle VIP :`, err);
+//         }
+//       }
+//     }
+//   }
+// });
 
 let blacklist = [];
 if (fs.existsSync('blacklist.json')) {
